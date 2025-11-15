@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSockets, MQTT y Comunicación en Tiempo Real</title>
+    <style>
+        /* Estilos generales */
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #202122;
+            background-color: #fff;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+        }
+        /* Barra lateral de navegación */
+        
+        .sidebar {
+            width: 250px;
+            padding: 20px 15px;
+            position: sticky;
+            top: 0;
+            max-height: 100vh;
+            overflow-y: auto;
+            border-right: 1px solid #a2a9b1;
+        }
+        
+        .sidebar h2 {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #a2a9b1;
+        }
+        
+        .sidebar ul {
+            list-style-type: none;
+        }
+        
+        .sidebar li {
+            margin-bottom: 5px;
+        }
+        
+        .sidebar a {
+            color: #0645ad;
+            text-decoration: none;
+            display: block;
+            padding: 3px 0;
+            font-size: 0.9em;
+        }
+        
+        .sidebar a:hover {
+            text-decoration: underline;
+        }
+        /* Contenido principal */
+        
+        .content {
+            flex: 1;
+            padding: 20px 40px;
+            max-width: calc(100% - 250px);
+        }
+        
+        .content h1 {
+            font-size: 1.8em;
+            border-bottom: 1px solid #a2a9b1;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .content h2 {
+            font-size: 1.5em;
+            border-bottom: 1px solid #a2a9b1;
+            padding-bottom: 8px;
+            margin: 30px 0 15px 0;
+        }
+        
+        .content h3 {
+            font-size: 1.2em;
+            margin: 20px 0 10px 0;
+        }
+        
+        .content p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        
+        .content ul,
+        .content ol {
+            margin-bottom: 15px;
+            padding-left: 40px;
+        }
+        
+        .content li {
+            margin-bottom: 5px;
+        }
+        /* Tablas */
+        
+        .infobox {
+            border: 1px solid #a2a9b1;
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0 20px 20px;
+            float: right;
+            width: 300px;
+            font-size: 0.9em;
+        }
+        
+        .infobox th {
+            text-align: center;
+            background-color: #eaecf0;
+            padding: 5px;
+        }
+        
+        .infobox td {
+            padding: 5px;
+            vertical-align: top;
+        }
+        /* Código */
+        
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #eaecf0;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            overflow-x: auto;
+            border-radius: 3px;
+        }
+        /* Referencias */
+        
+        .references {
+            margin-top: 30px;
+            font-size: 0.9em;
+        }
+        
+        .references ol {
+            padding-left: 20px;
+        }
+        
+        .references li {
+            margin-bottom: 10px;
+        }
+        /* Responsive */
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                position: relative;
+                max-height: none;
+            }
+            .content {
+                max-width: 100%;
+            }
+            .infobox {
+                float: none;
+                width: 100%;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Barra lateral con índice -->
+        <aside class="sidebar">
+            <h2>Contenido</h2>
+            <ul>
+                <li><a href="#introduccion">1. Introducción</a></li>
+                <li><a href="#websockets">2. WebSockets</a>
+                    <ul>
+                        <li><a href="#que-son-websockets">2.1. ¿Qué son?</a></li>
+                        <li><a href="#como-funcionan-websockets">2.2. ¿Cómo funcionan?</a></li>
+                        <li><a href="#ventajas-websockets">2.3. Ventajas</a></li>
+                        <li><a href="#casos-uso-websockets">2.4. Casos de uso</a></li>
+                    </ul>
+                </li>
+                <li><a href="#mqtt">3. MQTT</a>
+                    <ul>
+                        <li><a href="#que-es-mqtt">3.1. ¿Qué es?</a></li>
+                        <li><a href="#arquitectura-mqtt">3.2. Arquitectura</a></li>
+                        <li><a href="#calidades-servicio-mqtt">3.3. Calidades de servicio</a></li>
+                        <li><a href="#ventajas-mqtt">3.4. Ventajas</a></li>
+                    </ul>
+                </li>
+                <li><a href="#comparacion">4. Comparación</a></li>
+                <li><a href="#aplicaciones">5. Aplicaciones</a></li>
+                <li><a href="#conclusion">6. Conclusión</a></li>
+                <li><a href="#referencias">7. Referencias</a></li>
+            </ul>
+        </aside>
+
+        <!-- Contenido principal -->
+        <main class="content">
+            <h1>WebSockets, MQTT y Comunicación en Tiempo Real</h1>
+
+            <section id="introduccion">
+                <h2>1. Introducción</h2>
+                <p>La comunicación en tiempo real se ha convertido en un componente fundamental de las aplicaciones web y móviles modernas. A diferencia del modelo tradicional de solicitud-respuesta utilizado en HTTP, las tecnologías de comunicación en tiempo
+                    real permiten el intercambio bidireccional instantáneo de datos entre clientes y servidores.</p>
+
+                <p>Estas tecnologías son esenciales para aplicaciones como chats en vivo, sistemas de notificaciones, dashboards en tiempo real, juegos multijugador, herramientas de colaboración y sistemas de Internet de las Cosas (IoT). Entre las tecnologías
+                    más destacadas para implementar comunicación en tiempo real se encuentran WebSockets y MQTT.</p>
+
+                <div class="infobox">
+                    <table>
+                        <tr>
+                            <th colspan="2">Comunicación en Tiempo Real</th>
+                        </tr>
+                        <tr>
+                            <td>Tecnologías</td>
+                            <td>WebSockets, MQTT, Server-Sent Events, Long Polling</td>
+                        </tr>
+                        <tr>
+                            <td>Ventajas</td>
+                            <td>Baja latencia, comunicación bidireccional, eficiencia</td>
+                        </tr>
+                        <tr>
+                            <td>Aplicaciones</td>
+                            <td>Chats, juegos, IoT, trading, colaboración</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <p>La adopción de estas tecnologías ha crecido exponencialmente en los últimos años, impulsada por la necesidad de aplicaciones más interactivas y responsivas. Según estudios de mercado, se espera que el mercado de tecnologías en tiempo real
+                    crezca a una tasa anual del 15% hasta 2027.</p>
+            </section>
+
+            <section id="websockets">
+                <h2>2. WebSockets</h2>
+
+                <h3 id="que-son-websockets">2.1. ¿Qué son los WebSockets?</h3>
+                <p>WebSocket es un protocolo de comunicación que proporciona canales de comunicación full-duplex a través de una única conexión TCP. Fue estandarizado por la IETF como RFC 6455 en 2011 y permite una comunicación bidireccional entre clientes
+                    y servidores con una sobrecarga mínima.</p>
+
+                <p>A diferencia de HTTP, que sigue un modelo de solicitud-respuesta, WebSocket mantiene una conexión persistente entre el cliente y el servidor, permitiendo que ambos envíen datos en cualquier momento sin necesidad de realizar solicitudes
+                    repetidas.
+                </p>
+
+                <h3 id="como-funcionan-websockets">2.2. ¿Cómo funcionan los WebSockets?</h3>
+                <p>El establecimiento de una conexión WebSocket comienza con un handshake HTTP especial. El cliente envía una solicitud HTTP con headers específicos que indican su intención de actualizar la conexión a WebSocket:</p>
+
+                <div class="code-block">
+                    GET /chat HTTP/1.1<br> Host: server.example.com<br> Upgrade: websocket<br> Connection: Upgrade<br> Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==<br> Sec-WebSocket-Version: 13
+                </div>
+
+                <p>Si el servidor soporta WebSockets, responde confirmando la actualización del protocolo:</p>
+
+                <div class="code-block">
+                    HTTP/1.1 101 Switching Protocols<br> Upgrade: websocket<br> Connection: Upgrade<br> Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+                </div>
+
+                <p>Una vez completado este handshake, la conexión se mantiene abierta y tanto el cliente como el servidor pueden enviar datos en cualquier momento utilizando el protocolo WebSocket, que es mucho más ligero que HTTP.</p>
+
+                <h3 id="ventajas-websockets">2.3. Ventajas de WebSockets</h3>
+                <ul>
+                    <li><strong>Baja latencia:</strong> Elimina la sobrecarga de establecer conexiones repetidas.</li>
+                    <li><strong>Comunicación bidireccional:</strong> Tanto cliente como servidor pueden enviar datos en cualquier momento.</li>
+                    <li><strong>Eficiencia:</strong> Reduce significativamente el ancho de banda comparado con técnicas como polling.</li>
+                    <li><strong>Compatibilidad:</strong> Soporte nativo en todos los navegadores modernos.</li>
+                    <li><strong>Estándar abierto:</strong> Protocolo estandarizado por la IETF y W3C.</li>
+                </ul>
+
+                <h3 id="casos-uso-websockets">2.4. Casos de uso de WebSockets</h3>
+                <ul>
+                    <li><strong>Aplicaciones de chat:</strong> Mensajería instantánea y salas de chat.</li>
+                    <li><strong>Juegos multijugador:</strong> Actualizaciones en tiempo real del estado del juego.</li>
+                    <li><strong>Dashboards en tiempo real:</strong> Visualización de datos que cambian constantemente.</li>
+                    <li><strong>Herramientas colaborativas:</strong> Edición simultánea de documentos.</li>
+                    <li><strong>Notificaciones push:</strong> Alertas y actualizaciones inmediatas.</li>
+                </ul>
+            </section>
+
+            <section id="mqtt">
+                <h2>3. MQTT</h2>
+
+                <h3 id="que-es-mqtt">3.1. ¿Qué es MQTT?</h3>
+                <p>MQTT (Message Queuing Telemetry Transport) es un protocolo de mensajería ligero diseñado específicamente para dispositivos con recursos limitados y redes con ancho de banda reducido. Originalmente desarrollado por IBM en 1999, se ha convertido
+                    en el estándar de facto para aplicaciones de Internet de las Cosas (IoT).</p>
+
+                <p>MQTT sigue un modelo de publicación/suscripción (pub/sub) donde los clientes se conectan a un broker central que gestiona la distribución de mensajes. Los clientes pueden publicar mensajes en temas específicos o suscribirse a temas para
+                    recibir mensajes publicados por otros clientes.</p>
+
+                <h3 id="arquitectura-mqtt">3.2. Arquitectura de MQTT</h3>
+                <p>La arquitectura de MQTT consta de tres componentes principales:</p>
+
+                <ul>
+                    <li><strong>Publicador (Publisher):</strong> Cliente que envía mensajes a temas específicos.</li>
+                    <li><strong>Suscriptor (Subscriber):</strong> Cliente que recibe mensajes de temas a los que está suscrito.</li>
+                    <li><strong>Broker:</strong> Servidor central que recibe todos los mensajes y los distribuye a los suscriptores interesados.</li>
+                </ul>
+
+                <p>Los temas en MQTT son cadenas jerárquicas que permiten una organización flexible de los mensajes. Por ejemplo, un sensor de temperatura podría publicar en el tema "casa/salon/temperatura" y múltiples clientes podrían suscribirse a este
+                    tema para recibir las actualizaciones.</p>
+
+                <h3 id="calidades-servicio-mqtt">3.3. Calidades de servicio (QoS) en MQTT</h3>
+                <p>MQTT define tres niveles de calidad de servicio para garantizar la entrega de mensajes según los requisitos de la aplicación:</p>
+
+                <ul>
+                    <li><strong>QoS 0 (Máximo una vez):</strong> El mensaje se entrega sin confirmación. Es el más rápido pero no garantiza la entrega.</li>
+                    <li><strong>QoS 1 (Al menos una vez):</strong> El mensaje se entrega al menos una vez, con confirmación. Puede haber duplicados.</li>
+                    <li><strong>QoS 2 (Exactamente una vez):</strong> Garantiza que el mensaje se entregue exactamente una vez, mediante un handshake de cuatro pasos.</li>
+                </ul>
+
+                <h3 id="ventajas-mqtt">3.4. Ventajas de MQTT</h3>
+                <ul>
+                    <li><strong>Extremadamente ligero:</strong> Cabeceras mínimas y bajo consumo de recursos.</li>
+                    <li><strong>Eficiente en redes limitadas:</strong> Diseñado para funcionar en redes con ancho de banda reducido.</li>
+                    <li><strong>Escalabilidad:</strong> Arquitectura pub/sub que permite conectar miles de dispositivos.</li>
+                    <li><strong>Fiabilidad:</strong> Múltiples niveles de QoS para adaptarse a diferentes necesidades.</li>
+                    <li><strong>Seguridad:</strong> Soporte para autenticación y cifrado mediante TLS/SSL.</li>
+                </ul>
+            </section>
+
+            <section id="comparacion">
+                <h2>4. Comparación entre WebSockets y MQTT</h2>
+
+                <div class="infobox">
+                    <table>
+                        <tr>
+                            <th colspan="3">Comparación WebSockets vs MQTT</th>
+                        </tr>
+                        <tr>
+                            <th>Aspecto</th>
+                            <th>WebSockets</th>
+                            <th>MQTT</th>
+                        </tr>
+                        <tr>
+                            <td>Modelo</td>
+                            <td>Conexión punto a punto</td>
+                            <td>Publicación/suscripción</td>
+                        </tr>
+                        <tr>
+                            <td>Uso principal</td>
+                            <td>Aplicaciones web interactivas</td>
+                            <td>IoT y dispositivos limitados</td>
+                        </tr>
+                        <tr>
+                            <td>Overhead</td>
+                            <td>Bajo</td>
+                            <td>Muy bajo</td>
+                        </tr>
+                        <tr>
+                            <td>QoS</td>
+                            <td>No incorporado</td>
+                            <td>Tres niveles</td>
+                        </tr>
+                        <tr>
+                            <td>Compatibilidad</td>
+                            <td>Nativa en navegadores</td>
+                            <td>Requiere bibliotecas</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <p>Aunque ambas tecnologías permiten comunicación en tiempo real, están diseñadas para casos de uso diferentes:</p>
+
+                <ul>
+                    <li><strong>WebSockets</strong> es ideal para aplicaciones web que requieren comunicación bidireccional directa entre cliente y servidor, como chats, juegos y dashboards.</li>
+                    <li><strong>MQTT</strong> es más adecuado para escenarios con múltiples dispositivos, especialmente en entornos de IoT, donde la eficiencia y la escalabilidad son críticas.</li>
+                </ul>
+
+                <p>Es importante destacar que estas tecnologías no son mutuamente excluyentes. En muchos casos, se utilizan conjuntamente: MQTT para la comunicación entre dispositivos y servidores, y WebSockets para conectar aplicaciones web con el backend.</p>
+            </section>
+
+            <section id="aplicaciones">
+                <h2>5. Aplicaciones en el mundo real</h2>
+
+                <h3>Aplicaciones que utilizan WebSockets</h3>
+                <ul>
+                    <li><strong>Slack:</strong> Para la mensajería instantánea y notificaciones en tiempo real.</li>
+                    <li><strong>Trello:</strong> Para la actualización en tiempo real de tableros colaborativos.</li>
+                    <li><strong>Robinhood:</strong> Para la actualización de precios de acciones en tiempo real.</li>
+                    <li><strong>Google Docs:</strong> Para la edición colaborativa de documentos.</li>
+                </ul>
+
+                <h3>Aplicaciones que utilizan MQTT</h3>
+                <ul>
+                    <li><strong>Facebook Messenger:</strong> Para la mensajería en aplicaciones móviles.</li>
+                    <li><strong>AWS IoT:</strong> Plataforma de IoT de Amazon que utiliza MQTT como protocolo principal.</li>
+                    <li><strong>Dispositivos domésticos inteligentes:</strong> Muchos dispositivos de hogares inteligentes utilizan MQTT para comunicación.</li>
+                    <li><strong>Sistemas de monitoreo industrial:</strong> Para la recolección de datos de sensores en entornos industriales.</li>
+                </ul>
+            </section>
+
+            <section id="conclusion">
+                <h2>6. Conclusión</h2>
+
+                <p>La comunicación en tiempo real se ha convertido en un componente esencial de las aplicaciones modernas, y tanto WebSockets como MQTT ofrecen soluciones robustas para diferentes necesidades.</p>
+
+                <p>WebSockets proporciona una comunicación bidireccional eficiente ideal para aplicaciones web interactivas, mientras que MQTT, con su modelo de publicación/suscripción y bajos requisitos de recursos, es la opción preferida para aplicaciones
+                    de IoT y dispositivos con limitaciones.</p>
+
+                <p>La elección entre estas tecnologías depende del caso de uso específico, los requisitos de rendimiento, la infraestructura existente y las limitaciones de los dispositivos involucrados. En muchos escenarios complejos, la combinación de
+                    ambas tecnologías puede ofrecer la solución más efectiva.</p>
+
+                <p>A medida que la demanda de aplicaciones en tiempo real continúa creciendo, es probable que veamos una mayor evolución y adopción de estas tecnologías, así como la aparición de nuevas soluciones que aborden desafíos específicos en comunicación
+                    en tiempo real.</p>
+            </section>
+
+            <section id="referencias" class="references">
+                <h2>7. Referencias</h2>
+
+                <ol>
+                    <li>IETF RFC 6455 - The WebSocket Protocol</li>
+                    <li>IETF RFC 7252 - The Constrained Application Protocol (CoAP)</li>
+                    <li>MQTT Version 5.0 Specification - OASIS Standard</li>
+                    <li>HTML Living Standard - The WebSocket API - WHATWG</li>
+                    <li>Paho MQTT JavaScript Client - Eclipse Foundation</li>
+                    <li>WebSocket API - MDN Web Docs</li>
+                    <li>IBM MQTT Documentation</li>
+                    <li>Real-time Web Technologies Guide - HTML5Rocks</li>
+                </ol>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Script para hacer el índice interactivo
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarLinks = document.querySelectorAll('.sidebar a');
+            const sections = document.querySelectorAll('section');
+
+            // Función para resaltar la sección activa en el índice
+            function highlightActiveSection() {
+                let currentSection = '';
+
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.clientHeight;
+
+                    if (window.scrollY >= (sectionTop - 100)) {
+                        currentSection = section.getAttribute('id');
+                    }
+                });
+
+                sidebarLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + currentSection) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+
+            // Escuchar el evento de scroll
+            window.addEventListener('scroll', highlightActiveSection);
+
+            // Inicializar el resaltado al cargar la página
+            highlightActiveSection();
+
+            // Smooth scrolling para los enlaces del índice
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    const targetId = this.getAttribute('href');
+                    const targetSection = document.querySelector(targetId);
+
+                    if (targetSection) {
+                        window.scrollTo({
+                            top: targetSection.offsetTop - 20,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
